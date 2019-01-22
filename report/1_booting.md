@@ -44,5 +44,11 @@ movl	$(bootstacktop),%esp
 call	i386_init
 ```
 
-## E10
--12. Stack backtracing
+## E10 Calling Conventions
+C calling conventions on the x86
+
+## E11
++ Recursively read saved ebp by `movl (%ebp) %ebp`
++ The outputs are at `i(%ebp)`, where i = 0,1,2,3,4,5,6
+
+## E12
