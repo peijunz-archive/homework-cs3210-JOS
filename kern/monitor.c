@@ -35,7 +35,7 @@ mon_help(int argc, char **argv, struct Trapframe *tf)
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(commands); i++)
-		cprintf("%s - %s\n", commands[i].name, commands[i].desc);
+		cprintf("%C2%s%C0 - %s\n", commands[i].name, commands[i].desc);
 	return 0;
 }
 
@@ -121,7 +121,7 @@ runcmd(char *buf, struct Trapframe *tf)
 		if (strcmp(argv[0], commands[i].name) == 0)
 			return commands[i].func(argc, argv, tf);
 	}
-	cprintf("Unknown command '%s'\n", argv[0]);
+	cprintf("Unknown command '%C4%s%C0'\n", argv[0]);
 	return 0;
 }
 
