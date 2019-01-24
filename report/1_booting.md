@@ -32,6 +32,9 @@ The kernel has linker script `kern/kernel.ld` which specifies link/load addr. Th
 ## E8. printf
 + Oct
 + CGA
+## Challenge on printf
++ Use `%C` to set textcolor, e.g. `%C4` is red, `%C0` is resetting color
++ Use `%B` to set background color, `%B0` is resetting
 
 ## E9
 + `entry.S` has specified the size of required memory in the directive `bootstack`
@@ -48,7 +51,8 @@ call	i386_init
 C calling conventions on the x86
 
 ## E11
-+ Recursively read saved ebp by `movl (%ebp) %ebp`
++ Recursively read saved ebp by `movl (%ebp) %ebp` until it is `NULL`
 + The outputs are at `i(%ebp)`, where i = 0,1,2,3,4,5,6
 
 ## E12
+Use binary search to find the symbol for `%eip`, and the related info is line number. 

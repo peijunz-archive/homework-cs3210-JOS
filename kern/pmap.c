@@ -104,7 +104,7 @@ boot_alloc(uint32_t n)
 	// LAB 2: Your code here.
 	result = nextfree;
 	nextfree = ROUNDUP(nextfree + n, PGSIZE);
-	cprintf("paddr of nextfree: %p, available %p\n", nextfree-KERNBASE, (char*) (npages * PGSIZE));
+// 	cprintf("paddr of nextfree: %p, available %p\n", nextfree-KERNBASE, (char*) (npages * PGSIZE));
 	if (nextfree-KERNBASE > (char*) (npages * PGSIZE)){
 		panic("boot_alloc failed to allocate %d bytes\n", n);
 	}
@@ -166,7 +166,6 @@ mem_init(void)
 
 	check_page_free_list(1);
 	check_page_alloc();
-	panic("mem_init: This function is not finished\n");
 	check_page();
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
@@ -178,6 +177,8 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, UPAGES, boot_alloc(0)-(void*)pages, PADDR(pages), PTE_U | PTE_P);
+	boot_map_region(kern_pgdir, (uint32_t)pages, boot_alloc(0)-(void*)pages, PADDR(pages), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -190,6 +191,7 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, PTSIZE, PADDR(bootstacktop)-KSTKSIZE, PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -199,6 +201,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -213,7 +216,6 @@ mem_init(void)
 	lcr3(PADDR(kern_pgdir));
 
 	check_page_free_list(0);
-
 	// entry.S set the really important flags in cr0 (including enabling
 	// paging).  Here we configure the rest of the flags that we care about.
 	cr0 = rcr0();
@@ -355,7 +357,18 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	return NULL;
+	pde_t *pde_p = pgdir + PDX(va);
+	pte_t *pgtable = (*pde_p & PTE_P) ? KADDR(PTE_ADDR(*pde_p)) : NULL;
+	if (!pgtable && create){
+		// Ref count?
+		//Allocate Page table for pde, and update pde
+		struct PageInfo * page = page_alloc(ALLOC_ZERO);
+		if (!page) return NULL;
+		page->pp_ref += 1;
+		pgtable = page2kva(page);
+		*pde_p = PTE_ADDR(page2pa(page))|PTE_P|PTE_W;
+	}
+	return pgtable ? pgtable + PTX(va) : NULL;
 }
 
 //
@@ -373,6 +386,15 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	int i;
+	pte_t *pte_p=NULL;
+	for (i = 0; i < size / PGSIZE; i++){
+		pte_p = pgdir_walk(pgdir, (void*)va+i*PGSIZE, true);
+		*pte_p = PTE_ADDR(pa+i*PGSIZE) | perm | PTE_P;
+		if (perm & PTE_U){
+			pgdir[PDX((void*)va+i*PGSIZE)] |= PTE_U;
+		}
+	}
 }
 
 //
@@ -404,6 +426,22 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	pte_t *pte_p=pgdir_walk(pgdir, va, 1);
+	if (!pte_p)
+		return -E_NO_MEM;
+	struct PageInfo *pp2 = page_lookup(pgdir, va, NULL);
+	if (pp2 != pp){
+		if (pp2){
+			page_remove(pgdir, va);
+			tlb_invalidate(pgdir, va);
+		}
+		pp->pp_ref++;
+	}
+	*pte_p = PTE_ADDR(page2pa(pp)) | perm | PTE_P;
+	if (perm & PTE_U){
+		pgdir[PDX(va)] |= PTE_U;
+	}
+	// Fill this function in
 	return 0;
 }
 
@@ -422,6 +460,13 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
+	pte_t *pte_p = pgdir_walk(pgdir, va, 0);
+	if (pte_store){
+		*pte_store = pte_p;
+	}
+	if (pte_p){
+		return pa2page(PTE_ADDR(*pte_p));
+	}
 	return NULL;
 }
 
@@ -443,7 +488,14 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
+	pte_t *pte_p=NULL;
+	struct PageInfo *pp = page_lookup(pgdir, va, &pte_p);
 	// Fill this function in
+	if (pp){
+		page_decref(pp);
+		*pte_p = 0;
+		tlb_invalidate(pgdir, va);
+	}
 }
 
 //
