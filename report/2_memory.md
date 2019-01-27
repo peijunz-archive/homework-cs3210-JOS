@@ -15,7 +15,7 @@ Read i386 Manual...
 ## E3
 debug with qemu/GDB. Inspecting physical memory/virtual memory to ensure the memory mapping might be useful. 
 
-## Question
+## Question 1
 All pointers in C should be virtual address. Thus mystery_t is `uintptr_t`
 
 The two macros are useful in convertion between KV Addr and Physical Addr
@@ -34,5 +34,16 @@ PADDR(ka)
 ## E5
 Just use `boot_map_region()` to make it!
 
+## Questions 2-5
+2. TBD
+3. because of the privilege bit `S/U`
+4. 4G, the PTD has 1K PDE, every page table has 1K PTE, every page has 4K Bytes
+5. Space taken by `pages` and also page directory/table
+6. PC relative addressing for simple `jmp` instructions. It is necessary because later function calls will need to use absolute virtual address.
+
 ## Challenges
-TODO
+1. `PTE_PS` bit controls whether an entry in PTD is 4M super page or an actual page table
+2. TBD
+3. TBD
+4. Swapping?
+5. Buddy Allocator
