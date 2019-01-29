@@ -47,14 +47,14 @@
 	pushl $(num);							\
 	jmp _alltraps
 
-.text
 
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 .data
 	.globl handler_table
-	handler_table:
+handler_table:
+/* 	.space 4 # T_COPROC */
 TRAPHANDLER_NOEC(divide_handler, T_DIVIDE)
 TRAPHANDLER_NOEC(debug_handler, T_DEBUG)
 TRAPHANDLER_NOEC(nmi_handler, T_NMI)
@@ -85,6 +85,7 @@ TRAPHANDLER(syscall_handler, T_SYSCALL)
 /*
  * Lab 3: Your code here for _alltraps
  */
+ 
 .globl _alltraps
 .type _alltraps, @function
 .align 2
@@ -92,7 +93,7 @@ _alltraps:
   pushl %ds # ds
   pushl %es # es
   pushal
-  movl $GD_KD, %eax
+  movl $GD_KD, %ax
   movw %ax, %es
   movw %ax, %ds
   pushl %esp
