@@ -26,6 +26,7 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display backtraced procedral information", mon_backtrace },
+	{ "showmappings", "Display memory mapping information", mon_showmappings },
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -37,6 +38,10 @@ mon_help(int argc, char **argv, struct Trapframe *tf)
 
 	for (i = 0; i < ARRAY_SIZE(commands); i++)
 		cprintf("%C2%s%C0 - %s\n", commands[i].name, commands[i].desc);
+	return 0;
+}
+
+int mon_showmappings(int argc, char **argv, struct Trapframe *tf){
 	return 0;
 }
 
