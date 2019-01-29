@@ -8,7 +8,25 @@
 #include <kern/monitor.h>
 #include <kern/env.h>
 #include <kern/syscall.h>
-
+extern void divide_handler ();
+extern void debug_handler  ();
+extern void nmi_handler    ();
+extern void brkpt_handler  ();
+extern void oflow_handler  ();
+extern void bound_handler  ();
+extern void illop_handler  ();
+extern void device_handler ();
+extern void dblflt_handler ();
+extern void tss_handler    ();
+extern void segnp_handler  ();
+extern void stack_handler  ();
+extern void gpflt_handler  ();
+extern void pgflt_handler  ();
+extern void fperr_handler  ();
+extern void align_handler  ();
+extern void mchk_handler   ();
+extern void simderr_handler();
+extern void syscall_handler();
 static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
@@ -65,7 +83,25 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-
+	
+    SETGATE(idt[T_DIVIDE ],  0,  GD_KT, divide_handler ,   0)
+    SETGATE(idt[T_DEBUG  ],  0,  GD_KT, debug_handler  ,   0)
+    SETGATE(idt[T_NMI    ],  0,  GD_KT, nmi_handler    ,   0)
+    SETGATE(idt[T_BRKPT  ],  0,  GD_KT, brkpt_handler  ,   0)
+    SETGATE(idt[T_OFLOW  ],  0,  GD_KT, oflow_handler  ,   0)
+    SETGATE(idt[T_BOUND  ],  0,  GD_KT, bound_handler  ,   0)
+    SETGATE(idt[T_ILLOP  ],  0,  GD_KT, illop_handler  ,   0)
+    SETGATE(idt[T_DEVICE ],  0,  GD_KT, device_handler ,   0)
+    SETGATE(idt[T_DBLFLT ],  0,  GD_KT, dblflt_handler ,   0)
+    SETGATE(idt[T_TSS    ],  0,  GD_KT, tss_handler    ,   0)
+    SETGATE(idt[T_SEGNP  ],  0,  GD_KT, segnp_handler  ,   0)
+    SETGATE(idt[T_STACK  ],  0,  GD_KT, stack_handler  ,   0)
+    SETGATE(idt[T_GPFLT  ],  0,  GD_KT, gpflt_handler  ,   0)
+    SETGATE(idt[T_PGFLT  ],  0,  GD_KT, pgflt_handler  ,   0)
+    SETGATE(idt[T_FPERR  ],  0,  GD_KT, fperr_handler  ,   0)
+    SETGATE(idt[T_ALIGN  ],  0,  GD_KT, align_handler  ,   0)
+    SETGATE(idt[T_MCHK   ],  0,  GD_KT, mchk_handler   ,   0)
+    SETGATE(idt[T_SIMDERR],  0,  GD_KT, simderr_handler,   0)
 	// Per-CPU setup 
 	trap_init_percpu();
 }

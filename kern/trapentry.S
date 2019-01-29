@@ -21,6 +21,9 @@
  * where NAME is the argument passed to TRAPHANDLER.
  */
 #define TRAPHANDLER(name, num)						\
+.data;						\
+	.long name;				\
+.text;						\
 	.globl name;		/* define global symbol for 'name' */	\
 	.type name, @function;	/* symbol type is function */		\
 	.align 2;		/* align function definition */		\
@@ -33,6 +36,9 @@
  * format in either case.
  */
 #define TRAPHANDLER_NOEC(name, num)					\
+.data;						\
+	.long name;				\
+.text;						\
 	.globl name;							\
 	.type name, @function;						\
 	.align 2;							\
@@ -46,10 +52,48 @@
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
+.data
+	.globl handler_table
+	handler_table:
+TRAPHANDLER_NOEC(divide_handler, T_DIVIDE)
+TRAPHANDLER_NOEC(debug_handler, T_DEBUG)
+TRAPHANDLER_NOEC(nmi_handler, T_NMI)
+TRAPHANDLER_NOEC(brkpt_handler, T_BRKPT)
+TRAPHANDLER_NOEC(oflow_handler, T_OFLOW)
+TRAPHANDLER_NOEC(bound_handler, T_BOUND)
+TRAPHANDLER_NOEC(illop_handler, T_ILLOP)
+TRAPHANDLER_NOEC(device_handler, T_DEVICE)
+TRAPHANDLER(dblflt_handler, T_DBLFLT)
+.data
+	.space 4 # T_COPROC
 
-
+TRAPHANDLER(tss_handler, T_TSS    )
+TRAPHANDLER(segnp_handler, T_SEGNP  )
+TRAPHANDLER(stack_handler, T_STACK  )
+TRAPHANDLER(gpflt_handler, T_GPFLT  )
+TRAPHANDLER(pgflt_handler, T_PGFLT  )
+.data
+	.space 4 # T_RES
+TRAPHANDLER(fperr_handler, T_FPERR  )
+TRAPHANDLER(align_handler, T_ALIGN  )
+TRAPHANDLER(mchk_handler, T_MCHK   )
+TRAPHANDLER(simderr_handler, T_SIMDERR)
+.data
+	.space (T_SYSCALL-T_SIMDERR-1)*4 # (48-19-1)*4
+TRAPHANDLER(syscall_handler, T_SYSCALL)
 
 /*
  * Lab 3: Your code here for _alltraps
  */
-
+.globl _alltraps
+.type _alltraps, @function
+.align 2
+_alltraps:
+  pushl %ds # ds
+  pushl %es # es
+  pushal
+  movl $GD_KD, %eax
+  movw %ax, %es
+  movw %ax, %ds
+  pushl %esp
+  call trap
