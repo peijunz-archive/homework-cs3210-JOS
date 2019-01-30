@@ -25,7 +25,29 @@ https://pdos.csail.mit.edu/6.828/2018/readings/i386/c09.htm
 
 ## E6
 ## Question 2
-+ The privilege level for brkpt should be 3
++ The privilege level for BRKPT should be 3
 + To prevent the user from executing privileged instructions like page fault
  
 ## E7
++ SYSCALL has no errorcode
++ How is shift of eip determined?
++ User space vs kernel space syscall functions
++ Caveats for extern function/array definitions. There should NEVER be cast for extern variable
+```c
+// GOOD
+typedef void (*handler_t)();
+extern handler_t handler_table[];
+extern handler_t syscall_handler;
+extern void syscall_handler();
+//BAD
+extern handler_t handler_table[]; //BAD
+extern void (*syscall_handler)(); //BAD
+```
+
+
+## E8
++ a user env starts from libmain, which sets the userid for user space
++ printf and exit calls `sys_puts` and `sys_env_destrop` respectively
+
+## E9 E10
+Simply page walk and check existence as well as permission for pages

@@ -355,12 +355,13 @@ load_icode(struct Env *e, uint8_t *binary)
 		// as the virtual address)
 		if (ph->p_type == ELF_PROG_LOAD){
 			region_alloc(e, (void*)ph->p_va, ph->p_memsz);
+// 			cprintf("%d %d\n", ph->p_filesz, ph->p_memsz);
 			memset((void*)ph->p_va, 0, ph->p_memsz);
 			memcpy((void*)ph->p_va, binary + ph->p_offset, ph->p_filesz);
 		}
 	}
-	e->env_tf.tf_eip = elf_binary->e_entry;
 	lcr3(PADDR(kern_pgdir));
+	e->env_tf.tf_eip = elf_binary->e_entry;
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 	struct PageInfo * pp = page_alloc(0);

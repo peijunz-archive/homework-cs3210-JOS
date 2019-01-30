@@ -28,7 +28,7 @@
 // extern void simderr_handler();
 typedef void (*handler_t)();
 extern handler_t handler_table[];
-extern handler_t syscall_handler;
+extern void syscall_handler();
 static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
@@ -88,6 +88,7 @@ trap_init(void)
 
 	// LAB 3: Your code here.
 // 	cprintf("%p %p %p\n", handler_table[1], divide_handler, debug_handler);
+// 	cprintf("%p\n", &syscall_handler);
 	for (int i=0; i<20; i++){
 		SETGATE(idt[i], 0, GD_KT, handler_table[i], i==T_BRKPT?3:0);
 	}
@@ -179,6 +180,19 @@ trap_dispatch(struct Trapframe *tf)
 // 			env_destroy(curenv);
 			monitor(tf);
 			return;
+		case T_SYSCALL:
+// 			cprintf("%p\n", tf->tf_eip);
+			print_trapframe(tf);
+			curenv->env_tf.tf_regs.reg_eax = syscall(
+				tf->tf_regs.reg_eax,
+				tf->tf_regs.reg_edx,
+				tf->tf_regs.reg_ecx,
+				tf->tf_regs.reg_ebx,
+				tf->tf_regs.reg_edi,
+				tf->tf_regs.reg_esi
+			);
+// 			panic("syscall done\n");
+			return;
 	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
@@ -242,6 +256,7 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 3: Your code here.
 
 	if (tf->tf_cs == GD_KT){
+// 		print_trapframe(tf);
 		panic("Kernel Model page fault at %p\n", fault_va);
 	}
 

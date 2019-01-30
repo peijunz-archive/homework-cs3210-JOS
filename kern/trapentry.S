@@ -74,13 +74,13 @@ TRAPHANDLER(gpflt_handler, T_GPFLT  )
 TRAPHANDLER(pgflt_handler, T_PGFLT  )
 .data
 	.space 4 # T_RES
-TRAPHANDLER(fperr_handler, T_FPERR  )
+TRAPHANDLER_NOEC(fperr_handler, T_FPERR  )
 TRAPHANDLER(align_handler, T_ALIGN  )
-TRAPHANDLER(mchk_handler, T_MCHK   )
-TRAPHANDLER(simderr_handler, T_SIMDERR)
+TRAPHANDLER_NOEC(mchk_handler, T_MCHK   )
+TRAPHANDLER_NOEC(simderr_handler, T_SIMDERR)
 .data
 	.space (T_SYSCALL-T_SIMDERR-1)*4 # (48-19-1)*4
-TRAPHANDLER(syscall_handler, T_SYSCALL)
+TRAPHANDLER_NOEC(syscall_handler, T_SYSCALL)
 
 /*
  * Lab 3: Your code here for _alltraps
@@ -93,8 +93,8 @@ _alltraps:
   pushl %ds # ds
   pushl %es # es
   pushal
-  movl $GD_KD, %ax
-  movw %ax, %es
-  movw %ax, %ds
+  movl $GD_KD, %eax
+  movl %eax, %es
+  movl %eax, %ds
   pushl %esp
   call trap

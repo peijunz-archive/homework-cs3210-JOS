@@ -16,7 +16,8 @@ umain(int argc, char **argv)
 		if (bigarray[i] != 0)
 			panic("bigarray[%d] isn't cleared!\n", i);
 	for (i = 0; i < ARRAYSIZE; i++)
-		bigarray[i] = i;
+		bigarray[i] = 
+		i;
 	for (i = 0; i < ARRAYSIZE; i++)
 		if (bigarray[i] != i)
 			panic("bigarray[%d] didn't hold its value!\n", i);
