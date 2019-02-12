@@ -79,7 +79,7 @@ struct UTrapframe {
 	uint32_t utf_fault_va;	/* va for T_PGFLT, 0 otherwise */
 	uint32_t utf_err;
 	/* trap-time return state */
-	struct PushRegs utf_regs;
+	struct PushRegs utf_regs; //32bytes
 	uintptr_t utf_eip;
 	uint32_t utf_eflags;
 	/* the trap-time stack to return to */
