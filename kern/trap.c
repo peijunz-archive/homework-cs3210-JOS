@@ -215,13 +215,12 @@ trap_dispatch(struct Trapframe *tf)
 			page_fault_handler(tf);
 			return;
 		case T_BRKPT:
-			cprintf("  trap %p Breakpoint\n", tf->tf_eip);
-// 			env_destroy(curenv);
 			monitor(tf);
 			return;
 		case T_SYSCALL:
-// 			cprintf("%p\n", tf->tf_eip);
-			// print_trapframe(tf);
+			// cprintf("syscall from %p\n", tf->tf_eip);
+			// if (tf->tf_regs.reg_eax == SYS_yield)
+				// print_trapframe(tf);
 			curenv->env_tf.tf_regs.reg_eax = syscall(
 				tf->tf_regs.reg_eax,
 				tf->tf_regs.reg_edx,
@@ -230,7 +229,7 @@ trap_dispatch(struct Trapframe *tf)
 				tf->tf_regs.reg_edi,
 				tf->tf_regs.reg_esi
 			);
-// 			panic("syscall done\n");
+			// panic("syscall done\n");
 			return;
 	}
 
@@ -246,6 +245,11 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+    if (tf->tf_trapno==IRQ_OFFSET+IRQ_TIMER) {
+        lapic_eoi();
+        sched_yield();
+        return;
+    }
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);

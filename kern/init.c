@@ -119,7 +119,7 @@ mp_main(void)
 	lock_kernel();
 	sched_yield();
 	// Remove this after you finish Exercise 6
-	for (;;);
+	// for (;;);
 }
 
 /*

@@ -29,12 +29,14 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+	
 	int offset = curenv ? curenv - envs : -1;
+    // int cur=curenv?ENVX(curenv->env_id):0;
 
 	for (int i=offset+1; i < offset + 1 + NENV; i++){
 		idle = envs + i%NENV;
 		if (idle->env_status == ENV_RUNNABLE){
-			// cprintf("cur %d, and %d is idle\n", offset, i%NENV);
+			// cprintf("cur %d, and %d is idle: %p\n", offset, i%NENV, curenv);
 			env_run(idle);
 		}
 	}
@@ -42,7 +44,6 @@ sched_yield(void)
 		// cprintf("Continue current execution\n");
 		env_run(curenv);
 	}
-	
 	// sched_halt never returns
 	sched_halt();
 }

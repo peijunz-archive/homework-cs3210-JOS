@@ -302,7 +302,33 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	struct Env *dstenv;
+	struct PageInfo * pp;
+	pte_t *pte;
+	if (envid2env(envid, &dstenv, 0)<0)
+		return -E_BAD_ENV;
+	// cprintf("%p, %d, %d, %d\n", dstenv, envid, dstenv->env_status, dstenv->env_ipc_recving);
+	if (dstenv->env_status != ENV_NOT_RUNNABLE || !dstenv->env_ipc_recving)
+		return -E_IPC_NOT_RECV;
+	if ((uintptr_t)srcva < UTOP && (uintptr_t)dstenv->env_ipc_dstva < UTOP){
+		if ((uintptr_t)srcva % PGSIZE)
+			return -E_INVAL;
+		if ((perm & ~(PTE_U|PTE_P|PTE_AVAIL|PTE_W)))
+			return -E_INVAL;
+		if (!(pp = page_lookup(curenv->env_pgdir, srcva, &pte)))
+			return -E_INVAL;
+		if ((perm & PTE_W) && !(*pte & PTE_W))
+			return -E_INVAL;
+		if (page_insert(dstenv->env_pgdir, pp, dstenv->env_ipc_dstva, perm|PTE_U|PTE_P)<0)
+			return -E_NO_MEM;
+		dstenv->env_ipc_perm = perm;
+	}
+	dstenv->env_ipc_recving = 0;
+	dstenv->env_ipc_from = curenv->env_id;
+	dstenv->env_ipc_value = value;
+	dstenv->env_status = ENV_RUNNABLE;
+	dstenv->env_tf.tf_regs.reg_eax = 0;
+	return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -320,7 +346,16 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+	if ((uintptr_t)dstva % PGSIZE)
+		return -E_INVAL;
+	curenv->env_ipc_from = 0;
+	curenv->env_ipc_perm = 0;
+	curenv->env_ipc_recving = 1;
+	curenv->env_ipc_dstva = dstva;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+
+	// cprintf("recv: %p, %d, %d, %d\n", curenv, curenv->env_id, curenv->env_status, curenv->env_ipc_recving);
+	sched_yield();
 	return 0;
 }
 
@@ -362,10 +397,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		sys_yield();
 		return 0;
 	case SYS_ipc_try_send:
-		return 0;
+		return sys_ipc_try_send(a1, a2, (void*)a3, a4);
 	case SYS_ipc_recv:
-		return 0;
-	case NSYSCALLS:
+		return sys_ipc_recv((void*)a1);
+	// case NSYSCALLS:
 	default:
 		return -E_INVAL;
 	}

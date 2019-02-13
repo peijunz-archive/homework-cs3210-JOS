@@ -525,6 +525,7 @@ env_run(struct Env *e)
 	//	e->env_tf.  Go back through the code you wrote above
 	//	and make sure you have set the relevant parts of
 	//	e->env_tf to sensible values.
+
 	if (curenv && curenv->env_status == ENV_RUNNING){
 		curenv->env_status = ENV_RUNNABLE;
 	}
@@ -536,9 +537,6 @@ env_run(struct Env *e)
 	unlock_kernel();
 	// cprintf("unlocked kernel\n");
 	env_pop_tf(&(curenv->env_tf));
-	// cprintf("pop trap frame\n");
 	// LAB 3: Your code here.
-
-// 	panic("env_run not yet implemented");
 }
 
