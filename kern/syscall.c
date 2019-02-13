@@ -232,7 +232,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 		return -E_BAD_ENV;
 	if (!(pp = page_lookup(e1->env_pgdir, srcva, &pte)))
 		return -E_INVAL;
-	if ((perm & PTE_W) > (*pte & PTE_W))
+	if ((perm & PTE_W) && !(*pte & PTE_W))
 		return -E_INVAL;
 	return page_insert(e2->env_pgdir, pp, dstva, perm|PTE_U|PTE_P);
 }

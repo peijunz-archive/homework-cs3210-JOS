@@ -31,10 +31,24 @@ pgfault(struct UTrapframe *utf)
 	// page to the old page's address.
 	// Hint:
 	//   You should make three system calls.
-
+	// cprintf("[%08x] pgfault at %p\n", thisenv->env_id, addr);
+	pte_t *uvpt=(void*)UVPT;
+	struct PageInfo *pages=(void*)UPAGES;
+	if ((FEC_WR & utf->utf_err) && (uvpt[(uintptr_t)addr/PGSIZE]&PTE_COW)){
+		// Copy on write here!!!
+		addr = ROUNDDOWN(addr, PGSIZE);
+		struct PageInfo *pp = pages + (uintptr_t)addr/PGSIZE;
+		// Allocate a new page
+		if ((r=sys_page_alloc(0, PFTEMP, PTE_P|PTE_U|PTE_W))<0)
+			panic("page alloc fail, error %d\n", r);
+		memmove(PFTEMP, addr, PGSIZE);
+		if ((r=sys_page_map(0, PFTEMP, 0, addr, PTE_P|PTE_U|PTE_W))<0)
+			panic("page map fail with code %d\n", r);
+		if ((r=sys_page_unmap(0, PFTEMP))<0)
+			panic("page unmap fail with code %d\n", r);
+	}
+	// cprintf("[%08x] pgfault resolved at %p\n", thisenv->env_id, addr);
 	// LAB 4: Your code here.
-
-	panic("pgfault not implemented");
 }
 
 //
@@ -52,9 +66,21 @@ static int
 duppage(envid_t envid, unsigned pn)
 {
 	int r;
-
+	pte_t *uvpt=(void*)UVPT;
 	// LAB 4: Your code here.
-	panic("duppage not implemented");
+	void* addr=(void*)(pn*PGSIZE);
+	if ((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)){
+		// cprintf("Map write page at %p\n", addr);
+		if(sys_page_map(0, addr, envid, addr, PTE_P|PTE_U|PTE_COW)<0)
+			panic("Failed to map COW on child");
+		if(sys_page_map(0, addr, 0, addr, PTE_P|PTE_U|PTE_COW)<0)
+			panic("Failed to map COW on parent");
+	}
+	else{
+		// cprintf("Map read page at %p\n", addr);
+		if(sys_page_map(0, addr, envid, addr, PTE_P|PTE_U)<0)
+			panic("Failed to map R on child");
+	}
 	return 0;
 }
 
@@ -78,7 +104,41 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	panic("fork not implemented");
+	extern unsigned char end[];
+	void *addr;
+	envid_t envid;
+	int r;
+	set_pgfault_handler(pgfault);
+	envid = sys_exofork();
+	// cprintf("[%08x] sys_exofork done --- \n", thisenv->env_id);
+	if (envid < 0)
+		panic("sys_exofork: %e", envid);
+
+	if (envid == 0) {
+		// We're the child.
+		// The copied value of the global variable 'thisenv'
+		// is no longer valid (it refers to the parent!).
+		// Fix it and return 0.
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+	r = sys_page_alloc(envid, (void*)UXSTACKTOP-PGSIZE, PTE_W);
+
+	if((r=sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall))<0)
+		panic("set pgfault handler for child failed\n", r);
+
+	// Copy code
+	for (addr = (uint8_t*) UTEXT; addr < (void*)end; addr += PGSIZE)
+		duppage(envid, (uintptr_t)addr/PGSIZE);
+
+	// Copy stack
+	duppage(envid, (uintptr_t)(&addr)/PGSIZE);
+
+	// Start the child environment running
+	if ((r = sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
+		panic("sys_env_set_status: %e", r);
+	// cprintf("[%08x] fork done\n", thisenv->env_id);
+	return envid;
 }
 
 // Challenge!

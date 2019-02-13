@@ -14,24 +14,6 @@
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
 
-// extern void divide_handler ();
-// extern void debug_handler  ();
-// extern void nmi_handler    ();
-// extern void brkpt_handler  ();
-// extern void oflow_handler  ();
-// extern void bound_handler  ();
-// extern void illop_handler  ();
-// extern void device_handler ();
-// extern void dblflt_handler ();
-// extern void tss_handler    ();
-// extern void segnp_handler  ();
-// extern void stack_handler  ();
-// extern void gpflt_handler  ();
-// extern void pgflt_handler  ();
-// extern void fperr_handler  ();
-// extern void align_handler  ();
-// extern void mchk_handler   ();
-// extern void simderr_handler();
 typedef void (*handler_t)();
 extern handler_t handler_table[];
 extern void syscall_handler();
@@ -99,6 +81,9 @@ trap_init(void)
 // 	cprintf("%p\n", &syscall_handler);
 	for (int i=0; i<20; i++){
 		SETGATE(idt[i], 0, GD_KT, handler_table[i], i==T_BRKPT?3:0);
+	}
+	for (int i=IRQ_OFFSET; i<IRQ_OFFSET+16; i++){
+		SETGATE(idt[i], 0, GD_KT, handler_table[i], 0);
 	}
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, syscall_handler, 3);
 	// Per-CPU setup 
@@ -333,7 +318,6 @@ trap(struct Trapframe *tf)
 		sched_yield();
 }
 
-
 void
 page_fault_handler(struct Trapframe *tf)
 {
@@ -346,7 +330,6 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 3: Your code here.
 
 	if (tf->tf_cs == GD_KT){
-// 		print_trapframe(tf);
 		panic("kernel mode page fault at %p\n", fault_va);
 	}
 
@@ -399,7 +382,7 @@ page_fault_handler(struct Trapframe *tf)
 		// Add more stack frames on exception stack
 		utf = (void*)tf->tf_esp - sizeof(uint32_t) - sizeof(struct Trapframe);
 	}
-	// cprintf("uxstacktop %p, utf %p\n", USTACKTOP, utf);
+	// cprintf("uxstacktop %p, utf %p, fault at %p\n", UXSTACKTOP, utf, fault_va);
 	user_mem_assert(curenv, utf, sizeof(struct UTrapframe), PTE_U|PTE_W);
 	// Push registers/fault_va onto stack
 	utf->utf_fault_va = fault_va;
