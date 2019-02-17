@@ -208,8 +208,6 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		page_free(pp);
 		return -E_NO_MEM;
 	}
-	cprintf("perm after is %d at %x\n", *pgdir_walk(e->env_pgdir, va, 0) & 0xfff, va);
-
 	return 0;
 }
 

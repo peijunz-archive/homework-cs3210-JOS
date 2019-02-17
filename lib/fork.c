@@ -88,41 +88,6 @@ duppage(envid_t envid, unsigned pn)
 	return 0;
 }
 
-int _fork(int (*_duppage)(envid_t, unsigned)){
-	// LAB 4: Your code here.
-	extern unsigned char end[];
-	void *addr;
-	envid_t envid;
-	int r;
-	if (!_duppage) _duppage = duppage;
-	set_pgfault_handler(pgfault);
-	envid = sys_exofork();
-	// cprintf("[%08x] sys_exofork done --- \n", thisenv->env_id);
-	if (envid < 0)
-		panic("sys_exofork: %e", envid);
-
-	if (envid == 0) {
-		thisenv = &envs[ENVX(sys_getenvid())];
-		return 0;
-	}
-	r = sys_page_alloc(envid, (void*)UXSTACKTOP-PGSIZE, PTE_W);
-
-	if((r=sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall))<0)
-		panic("set pgfault handler for child failed\n", r);
-
-	// Copy code
-	for (addr = (uint8_t*) UTEXT; addr < (void*)end; addr += PGSIZE)
-		_duppage(envid, (uintptr_t)addr/PGSIZE);
-
-	// Copy stack
-	duppage(envid, (uintptr_t)(&addr)/PGSIZE);
-
-	// Start the child environment running
-	if ((r = sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
-		panic("sys_env_set_status: %e", r);
-	// cprintf("[%08x] fork done\n", thisenv->env_id);
-	return envid;
-}
 
 //
 // User-level fork with copy-on-write.
@@ -143,29 +108,46 @@ int _fork(int (*_duppage)(envid_t, unsigned)){
 envid_t
 fork(void)
 {
-	return _fork(NULL);
+	// LAB 4: Your code here.
+	extern unsigned char end[];
+	void *addr;
+	envid_t envid;
+	int r;
+	set_pgfault_handler(pgfault);
+	envid = sys_exofork();
+	// cprintf("[%08x] sys_exofork done --- \n", thisenv->env_id);
+	if (envid < 0)
+		panic("sys_exofork: %e", envid);
+
+	if (envid == 0) {
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+	r = sys_page_alloc(envid, (void*)UXSTACKTOP-PGSIZE, PTE_W|PTE_U|PTE_P);
+	if((r=sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall))<0)
+		panic("set pgfault handler for child failed\n", r);
+
+	// Copy Everything from UTEXT to USTACKTOP
+	for (uintptr_t pdx_addr=UTEXT; pdx_addr < USTACKTOP; pdx_addr += PTSIZE){
+		if (!(uvpd[PDX(pdx_addr)] & PTE_P))
+			continue;
+		for (uintptr_t addr=pdx_addr; addr<pdx_addr+PTSIZE && addr<USTACKTOP; addr += PGSIZE){
+			if ((uvpt[PGNUM(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_U)){
+				duppage(envid, PGNUM(addr));
+			}
+		}
+	}
+	// Start the child environment running
+	if ((r = sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
+		panic("sys_env_set_status: %e", r);
+	// cprintf("[%08x] fork done\n", thisenv->env_id);
+	return envid;
 }
 
 // Challenge!
 
-static int
-duppage2(envid_t envid, unsigned pn)
-{
-	int r;
-	pte_t *uvpt=(void*)UVPT;
-	void* addr=(void*)(pn*PGSIZE);
-	if ((uvpt[pn] & PTE_W)){
-		// cprintf("Map write page at %p\n", addr);
-		if(sys_page_map(0, addr, envid, addr, PTE_P|PTE_U|PTE_W)<0)
-			panic("Failed to map COW on child");
-	}
-	else{
-		panic("exc\n");
-	}
-	return 0;
-}
 envid_t
 sfork(void)
 {
-	return _fork(duppage2);
+	return 0;
 }
