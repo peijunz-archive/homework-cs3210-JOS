@@ -62,7 +62,18 @@ alloc_block(void)
 	// super->s_nblocks blocks in the disk altogether.
 
 	// LAB 5: Your code here.
-	panic("alloc_block not implemented");
+	int i, j, blockno;
+	for (i=0; i*32 < super->s_nblocks; i++){
+		if (bitmap[i] == 0) continue;
+		for (j = 0; j<32; j++){
+			blockno = i*32+j;
+			if (block_is_free(blockno)){
+				bitmap[i] &= ~(1<<(j%32));
+				flush_block(bitmap+i);
+				return blockno;
+			}
+		}
+	}
 	return -E_NO_DISK;
 }
 
@@ -134,8 +145,37 @@ fs_init(void)
 static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
-       // LAB 5: Your code here.
-       panic("file_block_walk not implemented");
+	// LAB 5: Your code here.
+	int r=0;
+	if (filebno >= NDIRECT + NINDIRECT)
+		return -E_INVAL;
+	if (filebno < NDIRECT){
+		// direct
+		if (ppdiskbno)
+			*ppdiskbno = f->f_direct + filebno;
+		return 0;
+	}
+	if (f->f_indirect == 0){
+		if (!alloc)
+			return -E_NOT_FOUND;
+		else{
+			int blockno = alloc_block();
+			if (blockno < 0){
+				return -E_NO_DISK;
+			}
+			if ((r = sys_page_alloc(0, diskaddr(blockno), PTE_W|PTE_U|PTE_P)) < 0){
+				return r;
+			}
+			memset(diskaddr(blockno), 0, BLKSIZE);
+			flush_block(diskaddr(blockno));
+			f->f_indirect = blockno;
+		}
+	}
+	uint32_t *f_indirect = diskaddr(f->f_indirect); //(void*)DISKMAP + BLKSIZE * ;
+
+	if (ppdiskbno)
+		*ppdiskbno = f_indirect + (filebno - NDIRECT);
+	return 0;
 }
 
 // Set *blk to the address in memory where the filebno'th
@@ -149,8 +189,23 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
-       // LAB 5: Your code here.
-       panic("file_get_block not implemented");
+	// LAB 5: Your code here.
+	uint32_t *bentry;
+	cprintf("file content %d\n", f->f_direct[0]);
+	int r;
+	if ((r = file_block_walk(f, filebno, &bentry, 1)) < 0)
+		return r;
+	if (*bentry == 0){
+		int blockno = alloc_block();
+		if (blockno < 0)
+			return -E_NO_DISK;
+		*bentry = blockno;
+		if ((r = sys_page_alloc(0, diskaddr(*bentry), PTE_W|PTE_U|PTE_P)) < 0)
+			return r;
+	}
+	*blk = diskaddr(*bentry);
+	return 0;
+	
 }
 
 // Try to find a file named "name" in dir.  If so, set *file to it.

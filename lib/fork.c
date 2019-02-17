@@ -69,7 +69,11 @@ duppage(envid_t envid, unsigned pn)
 	pte_t *uvpt=(void*)UVPT;
 	// LAB 4: Your code here.
 	void* addr=(void*)(pn*PGSIZE);
-	if ((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)){
+	if (uvpt[pn] & PTE_SHARE){
+		if(sys_page_map(0, addr, envid, addr, uvpt[pn] & PTE_SYSCALL)<0)
+			panic("Failed to map SHARED on child");
+	}
+	else if ((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)){
 		// cprintf("Map write page at %p\n", addr);
 		if(sys_page_map(0, addr, envid, addr, PTE_P|PTE_U|PTE_COW)<0)
 			panic("Failed to map COW on child");

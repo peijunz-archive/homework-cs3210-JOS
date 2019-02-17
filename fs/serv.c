@@ -9,7 +9,7 @@
 #include "fs.h"
 
 
-#define debug 0
+#define debug 1
 
 // The file system server maintains three structures
 // for each open file.
@@ -212,9 +212,19 @@ serve_read(envid_t envid, union Fsipc *ipc)
 
 	if (debug)
 		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
-
 	// Lab 5: Your code here:
-	return 0;
+	struct OpenFile *o = opentab + req->req_fileid % MAXOPEN;
+	// cprintf("%d, %d, %d\n", req->req_fileid, o->o_fileid, o->o_fd->fd_file.id);
+	int r;
+	// cprintf("Read at offset %d/%d!\n", o->o_fd->fd_offset, o->o_file->f_size);
+	if (o->o_fd->fd_offset >= o->o_file->f_size){
+		return -E_INVAL;
+	}
+	if ((r = file_read(o->o_file, ret, req->req_n, o->o_fd->fd_offset)) < 0)
+		return r;
+	// cprintf("Read done!\n");
+	o->o_fd->fd_offset += r;
+	return r;
 }
 
 
@@ -225,11 +235,17 @@ serve_read(envid_t envid, union Fsipc *ipc)
 int
 serve_write(envid_t envid, struct Fsreq_write *req)
 {
+	
 	if (debug)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// LAB 5: Your code here.
-	panic("serve_write not implemented");
+	struct OpenFile *o = opentab + req->req_fileid % MAXOPEN;
+	int r;
+	if ((r = file_write(o->o_file, req->req_buf, req->req_n, o->o_fd->fd_offset)) < 0)
+		return r;
+	o->o_fd->fd_offset += r;
+	return r;
 }
 
 // Stat ipc->stat.req_fileid.  Return the file's struct Stat to the
