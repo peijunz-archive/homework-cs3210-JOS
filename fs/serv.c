@@ -9,7 +9,7 @@
 #include "fs.h"
 
 
-#define debug 1
+#define debug 0
 
 // The file system server maintains three structures
 // for each open file.
@@ -216,13 +216,17 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	struct OpenFile *o = opentab + req->req_fileid % MAXOPEN;
 	// cprintf("%d, %d, %d\n", req->req_fileid, o->o_fileid, o->o_fd->fd_file.id);
 	int r;
-	// cprintf("Read at offset %d/%d!\n", o->o_fd->fd_offset, o->o_file->f_size);
-	if (o->o_fd->fd_offset >= o->o_file->f_size){
+	int ref = pageref(opentab[req->req_fileid % MAXOPEN].o_fd);
+	if (ref == 1){
+		cprintf("ref is 1\n");
 		return -E_INVAL;
+	}
+	// cprintf("pageref %d\n", pageref(opentab[req->req_fileid % MAXOPEN].o_fd));
+	if (o->o_fd->fd_offset >= o->o_file->f_size){
+		return o->o_fd->fd_offset == o->o_file->f_size ? 0 : -E_INVAL;
 	}
 	if ((r = file_read(o->o_file, ret, req->req_n, o->o_fd->fd_offset)) < 0)
 		return r;
-	// cprintf("Read done!\n");
 	o->o_fd->fd_offset += r;
 	return r;
 }

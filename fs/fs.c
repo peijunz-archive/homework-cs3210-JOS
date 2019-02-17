@@ -191,7 +191,6 @@ file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
 	// LAB 5: Your code here.
 	uint32_t *bentry;
-	cprintf("file content %d\n", f->f_direct[0]);
 	int r;
 	if ((r = file_block_walk(f, filebno, &bentry, 1)) < 0)
 		return r;
@@ -381,7 +380,6 @@ file_read(struct File *f, void *buf, size_t count, off_t offset)
 		return 0;
 
 	count = MIN(count, f->f_size - offset);
-
 	for (pos = offset; pos < offset + count; ) {
 		if ((r = file_get_block(f, pos / BLKSIZE, &blk)) < 0)
 			return r;

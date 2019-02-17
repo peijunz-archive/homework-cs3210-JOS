@@ -141,6 +141,12 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 		return -E_INVAL;
 	if (envid2env(envid, &e, 1) < 0)
 		return -E_BAD_ENV;
+	tf->tf_eflags &= ~FL_IOPL_3;
+	tf->tf_eflags |= FL_IF;
+	tf->tf_ds = GD_UD | 3;
+	tf->tf_es = GD_UD | 3;
+	tf->tf_ss = GD_UD | 3;
+	tf->tf_cs = GD_UT | 3;
 	e->env_tf = *tf;
 	return 0;
 }

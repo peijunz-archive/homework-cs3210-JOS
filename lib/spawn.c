@@ -302,6 +302,17 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+	// Copy Everything from UTEXT to USTACKTOP
+	for (uintptr_t pdx_addr=UTEXT; pdx_addr < USTACKTOP; pdx_addr += PTSIZE){
+		if (!(uvpd[PDX(pdx_addr)] & PTE_P))
+			continue;
+		for (uintptr_t addr=pdx_addr; addr<pdx_addr+PTSIZE && addr<USTACKTOP; addr += PGSIZE){
+			if ((uvpt[PGNUM(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_U) && (uvpt[PGNUM(addr)] & PTE_SHARE)){
+				// cprintf("Share %x\n", addr);
+				if(sys_page_map(0, (void*)addr, child, (void*)addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)<0)
+					panic("Failed to map SHARED on child");
+			}
+		}
+	}
 	return 0;
 }
-

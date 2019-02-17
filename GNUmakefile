@@ -339,3 +339,7 @@ always:
 
 .PHONY: all always \
 	handin git-handin tarball tarball-pref clean realclean distclean grade handin-prep handin-check
+
+newimg:
+	rm obj/fs/clean-fs.img
+	./fsformat clean-fs.img 1024 fs/newmotd fs/motd fs/lorem fs/script fs/testshell.key fs/testshell.sh obj/user/init obj/user/cat obj/user/echo obj/user/init obj/user/ls obj/user/lsfd obj/user/num obj/user/forktree obj/user/primes obj/user/primespipe obj/user/sh obj/user/testfdsharing obj/user/testkbd obj/user/testpipe obj/user/testpteshare obj/user/testshell obj/user/hello obj/user/faultio
