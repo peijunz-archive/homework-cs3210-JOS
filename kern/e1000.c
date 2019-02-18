@@ -122,7 +122,7 @@ int receive_packet(struct packet *pkt, int size){
         return -E_HUNGRY;
     }
     tail = (tail+1)%RCAP;
-    cprintf("Current head %d, tail %d -> %d\n", REG(E1000_RDH), REG(E1000_RDT), tail);
+    // cprintf("Current head %d, tail %d -> %d\n", REG(E1000_RDH), REG(E1000_RDT), tail);
     recvq[tail].status = 0;
     // recvq[tail].status &= ~E1000_RXD_STAT_EOP;
     if (size < recvq[tail].length + sizeof(pkt)){
