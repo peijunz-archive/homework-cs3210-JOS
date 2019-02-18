@@ -52,7 +52,7 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 	pg = pg ? pg : (void*)UTOP;
 	while ((r = sys_ipc_try_send(to_env, val, pg, perm))){
 		if (r != -E_IPC_NOT_RECV)
-			panic("Error in IPC with code %d\n", r);
+			panic("Error in IPC with code %e\n", r);
 		sys_yield();
 	}
 	// cprintf("Sent with ret %d\n", r);

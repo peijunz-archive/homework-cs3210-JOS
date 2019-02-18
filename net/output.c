@@ -20,6 +20,8 @@ output(envid_t ns_envid)
 			cprintf("Output helper: unknown request value %d from env %d\n", r, from_env);
 		}
 		// cprintf("Packet info: length %d, %20s\n", pkt->jp_len, pkt->jp_data);
-		sys_net_send(pkt->jp_data, pkt->jp_len);
+		if((r = sys_net_send(pkt->jp_data, pkt->jp_len))!=0){
+			cprintf("sending packet error %d\n", r);
+		}
 	}
 }
